@@ -4,6 +4,24 @@
     font-family: sans-serif;
 }
 
+#busqueda{
+    width: 90%;
+    margin: 10px auto;
+    border-collapse: collapse;
+}
+
+#busqueda tr{
+    height: 30px;
+}
+
+#busqueda tr td{
+    text-align: center;
+}
+
+#busqueda tr:nth-child(odd){
+    background-color: aliceblue;
+}
+
 h1{
     text-align: center;
 }

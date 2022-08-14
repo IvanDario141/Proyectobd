@@ -1,17 +1,28 @@
 //Evento cuando se carga la pagina
+let categoriaActual = 1;
+let formaOrden = "ASC";
+let ordenPor = "lanzamiento";
 $(document).ready(() => {
     buscarMarcas();
     buscarCategorias();
     ponerCategoriasPadre();
+    
 });
 
+$("#orden").on("change", ()=>{
+    formaOrden = $("#orden option:selected").val();
+    filtrarPorPadres(categoriaActual);
+});
+$("#ordenarPor").on("change", ()=>{
+    ordenPor = $("#ordenarPor option:selected").val();
+    filtrarPorPadres(categoriaActual);
+});
 function ponerCategoriasPadre(){
     $.ajax({
         url: "./php/buscarPadres.php",
         success: ponerPadres
     });
 }
-
 function ponerPadres(categorias){
     categorias = JSON.parse(categorias);
     $("#filtro-padres").empty();
@@ -20,15 +31,43 @@ function ponerPadres(categorias){
         $("#filtro-padres").append("<button onclick='filtrarPorPadres("+categoria.id+")' class='filtrarPorPadres'>"+categoria.nombre+"</button>");
     })
 }
-
 function filtrarPorPadres(id){
-    console.log(id);
+    categoriaActual = id;
+    buscarProductos({
+        categoria: id, 
+        formaOrden: formaOrden, 
+        ordenPor: ordenPor
+    });
+}
+function buscarProductos(filtros){
+    $.ajax({
+        data: filtros,
+        type: "post",
+        datatype: "json",
+        url: "./php/buscarProductos.php",
+        success: (texto) => {
+            let productos = JSON.parse(texto);
+            let tabla = $("#busqueda");
+            let marcas = [];
+            tabla.empty();
+            tabla.append("<tr> <th>Nombre</th> <th>Marca</th> <th>Precio</th> <th>En inventario</th> <th>Vendidos</th> <th>Fecha lanzamiento</th><th></th></tr>");
+            productos.map((producto) => {
+                producto = JSON.parse(producto);
+                if(!marcas.includes(producto.marca)) marcas.push(producto.marca);
+                tabla.append(`<tr> <td>${producto.nombre}</td> <td>${producto.marca}</td> <td>${producto.precio}</td> <td>${producto.cantidad}</td> <td>${producto.vendidos}</td> <td>${producto.lanzamiento}</td> <td><button onClick='comprar(${producto.id})'>Comprar</button></td> </tr>`);
+            });
+            ponerFiltroMarca(marcas)
+        }
+    });
 }
 
-$("#filtro-padres .filtrarPadres").on("click", () => {
-    console.log("clic");
-    console.log("Click en " + this.val());
-});
+function ponerFiltroMarca(marcas){
+    let filtro = $("#filtro-marca");
+    filtro.empty();
+    marcas.map((marca) =>{
+        filtro.append(`<option value=${marca}>${marca}</option>`);
+    });
+}
 
 $("#mostrarFormsCheck").on("change", () =>{
     $("#mostrarForms").toggleClass("mostrando").toggleClass("no-mostrando");
@@ -139,5 +178,40 @@ function informarEstadoCategoria(texto){
         $("#estado").html("Agregada la categoria "+ texto);
     }else{
         $("#estado").html("La marca " + $("#nombreMarca").val() + " ya está registrada");
+    }
+}
+
+//Evento cuando se agrega un producto
+$("#agregar-producto").on("submit", (e) => {
+    e.preventDefault();
+    //Se obtienen los datos necesarios para crear el producto
+    let datos = {
+        nombre : $("#titulo").val().trim(),
+        categorias : $("#categorias option:selected").val(),
+        precio : $("#precio").val(),
+        marcas : $("#marcas option:selected").val(),
+        cantidad : $("#cantidad").val(),
+        fechaLanzamiento : $("#fechaLanzamiento").val() 
+    }
+
+    $.ajax({
+        data : datos,
+        datatype : "json",
+        type : "post",
+        url : "./php/agregarProducto.php",
+        success : informar,
+        error : () => {
+            $("#estado").html("Ocurrió un error");
+        }
+    });
+});
+
+function informar(resultado){
+    console.log(resultado);
+    if(resultado == '1'){
+        $("#titulo").val("");
+        $("#precio").val("");
+        $("#cantidad").val("");
+        filtrarPorPadres(categoriaActual);
     }
 }
