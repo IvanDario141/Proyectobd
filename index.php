@@ -90,6 +90,15 @@
 
 </table>
 
+<form class="comprar-producto" id="comprar-producto">
+    <div class="contenedor">
+        <h1 id="titulo-comprar">------------</h1>
+        <h2 id="cant-comprar">-------</h2>
+    </div>
+    <input placeholder="Cantidad" type="number" name="cantCompra" id="cantCompra" required>
+    <button type="submit">Comprar</button>
+</form>
+
 <script src="./src/js/index.js"></script>
 <?php
     include './includes/footer.php'

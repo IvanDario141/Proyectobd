@@ -1,21 +1,58 @@
 //Evento cuando se carga la pagina
-let categoriaActual = 1;
+let categoriaActual = 0;
 let formaOrden = "ASC";
 let ordenPor = "lanzamiento";
+let marcaActual = 0;
+let maxActual = 0;
+let precioMin = 0;
+let precioMax = 5000000;
+let productoActual = 0;
 $(document).ready(() => {
     buscarMarcas();
     buscarCategorias();
     ponerCategoriasPadre();
-    
+    filtrar();
 });
 
+$("#comprar-producto").on("submit", (e)=>{
+    e.preventDefault();
+    let cantCompra = $("#cantCompra").val();
+    if(cantCompra < maxActual) return
+    let datos = {
+        id: productoActual,
+        cantidadComprar: cantCompra
+    };
+    $.ajax({
+        data : datos,
+        datatype : "json",
+        type : "post",
+        url : "./php/comprarProducto.php",
+        success : ()=>{
+            filtrar();
+        }
+    });
+});
+$("#filtro-marca").on("change", ()=>{
+    marcaActual = $("#filtro-marca option:selected").val();
+    filtrar();
+});
+$("#precioMax").on("change", ()=>{
+    precioMax = $("#precioMax").val();
+    if(precioMax=="") precioMax=7000000;
+    filtrar();
+});
+$("#precioMin").on("change", ()=>{
+    precioMin = $("#precioMin").val();
+    if(precioMin=="") precioMin=0;
+    filtrar();
+});
 $("#orden").on("change", ()=>{
     formaOrden = $("#orden option:selected").val();
-    filtrarPorPadres(categoriaActual);
+    filtrar();
 });
 $("#ordenarPor").on("change", ()=>{
     ordenPor = $("#ordenarPor option:selected").val();
-    filtrarPorPadres(categoriaActual);
+    filtrar();
 });
 function ponerCategoriasPadre(){
     $.ajax({
@@ -28,16 +65,25 @@ function ponerPadres(categorias){
     $("#filtro-padres").empty();
     categorias.map((categoria) => {
         categoria = JSON.parse(categoria);
-        $("#filtro-padres").append("<button onclick='filtrarPorPadres("+categoria.id+")' class='filtrarPorPadres'>"+categoria.nombre+"</button>");
+        $("#filtro-padres").append("<button onclick='setCategoria("+categoria.id+")' class='filtrar'>"+categoria.nombre+"</button>");
     })
 }
-function filtrarPorPadres(id){
+function setCategoria(id){
     categoriaActual = id;
-    buscarProductos({
-        categoria: id, 
+    marcaActual = 0;
+    filtrar();
+    $("#filtro-marca").val(0);
+}
+function filtrar(){
+    let filtros = {
+        categoria: categoriaActual, 
+        marca: marcaActual,
+        precioMin: precioMin,
+        precioMax: precioMax,
         formaOrden: formaOrden, 
         ordenPor: ordenPor
-    });
+    }
+    buscarProductos(filtros);
 }
 function buscarProductos(filtros){
     $.ajax({
@@ -46,27 +92,40 @@ function buscarProductos(filtros){
         datatype: "json",
         url: "./php/buscarProductos.php",
         success: (texto) => {
+            //console.log(texto);
             let productos = JSON.parse(texto);
             let tabla = $("#busqueda");
-            let marcas = [];
-            tabla.empty();
-            tabla.append("<tr> <th>Nombre</th> <th>Marca</th> <th>Precio</th> <th>En inventario</th> <th>Vendidos</th> <th>Fecha lanzamiento</th><th></th></tr>");
+
+            tabla.empty().append("<tr> <th>Nombre</th> <th>Marca</th> <th>Precio</th> <th>En inventario</th> <th>Vendidos</th> <th>Fecha lanzamiento</th><th></th></tr>");
             productos.map((producto) => {
                 producto = JSON.parse(producto);
-                if(!marcas.includes(producto.marca)) marcas.push(producto.marca);
-                tabla.append(`<tr> <td>${producto.nombre}</td> <td>${producto.marca}</td> <td>${producto.precio}</td> <td>${producto.cantidad}</td> <td>${producto.vendidos}</td> <td>${producto.lanzamiento}</td> <td><button onClick='comprar(${producto.id})'>Comprar</button></td> </tr>`);
-            });
-            ponerFiltroMarca(marcas)
+                tabla.append(`<tr> <td>${producto.nombre}</td> <td>${producto.marca}</td> <td> $${producto.precio}</td> <td>${producto.cantidad}</td> <td>${producto.vendidos}</td> <td>${producto.lanzamiento}</td> <td><button onClick='setProductoComprar(${producto.id})'>Comprar</button></td> </tr>`);
+            }); 
         }
     });
 }
-
-function ponerFiltroMarca(marcas){
-    let filtro = $("#filtro-marca");
-    filtro.empty();
-    marcas.map((marca) =>{
-        filtro.append(`<option value=${marca}>${marca}</option>`);
-    });
+function setProductoComprar(id){
+    productoActual = id;
+    actualizarComprar()
+}
+function actualizarComprar(){
+    let datos = {id: productoActual};
+    $.ajax({
+        data: datos,
+        datatype: "json",
+        type: "post",
+        url: "./php/buscarProductoId.php",
+        success: (producto) =>{
+            producto = JSON.parse(producto);
+            $("#titulo-comprar").html(producto.nombre);
+            $("#cant-comprar").html(producto.cantidad);
+            maxActual = producto.cantidad;
+            $("#cant-comprar").attr({
+                "max": producto.cantidad
+            });
+            console.log($("#cant-comprar").attr("max"));
+        }
+    })
 }
 
 $("#mostrarFormsCheck").on("change", () =>{
@@ -106,8 +165,10 @@ function ponerCategorias(data){
 function ponerMarcas(data){
     let arreglo = JSON.parse(data);
     $("#marcas").empty();
+    $("#filtro-marca").empty().append("<option value=0>-----</option>");
     arreglo.map((marca) => {
         marca = JSON.parse(marca);
+        $("#filtro-marca").append("<option value="+marca.id+">"+marca.nombre+"</option>")
         $("#marcas").append("<option value="+marca.id+">"+marca.nombre+"</option>")
     });
 }
@@ -150,7 +211,6 @@ $("#agregar-categoria").on("submit", (e) => {
     e.preventDefault();
     let categoria = $("#nombreCategoria").val().trim();
     let categoriaPadre = $("#idPadre option:selected").val();
-    console.log(categoriaPadre);
     let datos = {
         "nombreCategoria" : categoria,
         "idPadre" : categoriaPadre
@@ -207,11 +267,10 @@ $("#agregar-producto").on("submit", (e) => {
 });
 
 function informar(resultado){
-    console.log(resultado);
     if(resultado == '1'){
         $("#titulo").val("");
         $("#precio").val("");
         $("#cantidad").val("");
-        filtrarPorPadres(categoriaActual);
+        filtrar();
     }
 }
