@@ -16,21 +16,23 @@ $(document).ready(() => {
 
 $("#comprar-producto").on("submit", (e)=>{
     e.preventDefault();
-    let cantCompra = $("#cantCompra").val();
-    if(cantCompra < maxActual) return
-    let datos = {
-        id: productoActual,
-        cantidadComprar: cantCompra
-    };
-    $.ajax({
-        data : datos,
-        datatype : "json",
-        type : "post",
-        url : "./php/comprarProducto.php",
-        success : ()=>{
-            filtrar();
-        }
-    });
+    let cantCompra = parseInt($("#cantCompra").val());
+    if(cantCompra < maxActual) {
+        console.log([cantCompra, maxActual]);
+        let datos = {
+            id: productoActual,
+            cantCompra:cantCompra,
+        };
+        $.ajax({
+            data : datos,
+            datatype : "json",
+            type : "post",
+            url : "./php/comprarProducto.php",
+            success : ()=>{
+                filtrar();
+            }
+        });
+    }
 });
 $("#filtro-marca").on("change", ()=>{
     marcaActual = $("#filtro-marca option:selected").val();
@@ -65,7 +67,7 @@ function ponerPadres(categorias){
     $("#filtro-padres").empty();
     categorias.map((categoria) => {
         categoria = JSON.parse(categoria);
-        $("#filtro-padres").append("<button onclick='setCategoria("+categoria.id+")' class='filtrar'>"+categoria.nombre+"</button>");
+        $("#filtro-padres").append("<button class='filtrarPorPadres' onclick='setCategoria("+categoria.id+")' class='filtrar'>"+categoria.nombre+"</button>");
     })
 }
 function setCategoria(id){
@@ -106,6 +108,7 @@ function buscarProductos(filtros){
 }
 function setProductoComprar(id){
     productoActual = id;
+    $("#cantCompra").focus();
     actualizarComprar()
 }
 function actualizarComprar(){
@@ -119,11 +122,11 @@ function actualizarComprar(){
             producto = JSON.parse(producto);
             $("#titulo-comprar").html(producto.nombre);
             $("#cant-comprar").html(producto.cantidad);
-            maxActual = producto.cantidad;
+            maxActual = parseInt(producto.cantidad);
+            vendidosActual = producto.vendidos;
             $("#cant-comprar").attr({
                 "max": producto.cantidad
             });
-            console.log($("#cant-comprar").attr("max"));
         }
     })
 }

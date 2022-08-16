@@ -95,7 +95,7 @@
         <h1 id="titulo-comprar">------------</h1>
         <h2 id="cant-comprar">-------</h2>
     </div>
-    <input placeholder="Cantidad" type="number" name="cantCompra" id="cantCompra" required>
+    <input placeholder="Cantidad" type="number" min=0 name="cantCompra" id="cantCompra" required>
     <button type="submit">Comprar</button>
 </form>
 
